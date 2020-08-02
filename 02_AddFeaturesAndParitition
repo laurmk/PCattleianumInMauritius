@@ -1,0 +1,271 @@
+///////////////////////////////////////////
+///// Add Features and Partition data /////
+//////////////////////////////////////////
+
+////User inputs////
+//Note: *Delete previous Imports before adding new imports.*
+
+//01 - Import composite image from Assets (created in 01 - Preprocess) as 'image' (without quotations).
+
+//02 - Image year.
+var year = 2017
+
+//03 - Import ground truth data fusion table with column of 'class' and values of 1, 2 or 3.
+// Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
+// and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
+var fusion = ee.FeatureCollection('ft:1AcOK_v4tcHVJ9erH7dd0WFEvxQ6N6gNxMQnTLuqr');
+
+//04 - Import BRGNP boundaries from fusion table.
+// Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
+// and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
+var boundaries = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEHCll');
+
+//05 - Visualize a GLCM measure? no = 0; yes: enter glcm band name to be visualized, in quotes, from GLCM band list (i.e. 'B2_asm')
+var glcmVis = 'B2_asm'
+
+//06 - Export final image to Google Drive? yes = 1; no = 0
+var expImg_drive = 1
+
+//07 - Export final image to assets? yes = 1; no = 0
+//  Input '1' in order to classify in next steps
+var expImg_asset = 1
+
+//08 - Conduct data partitioning? yes = 1; no = 0 (only complete if ground truth data concurrent with image)
+var data_part = 0
+
+//09 - Export ground truth data to Google Drive as KML file? yes = 1; no = 0
+var expGT_drive = 1
+
+//10 - Export ground truth data to assets? yes = 1; no = 0
+//  Input '1' in order to classify in next steps
+var expGT_asset = 1
+
+//11 - Calculate total areas of validation and training data? yes = 1; no = 0
+var area_calc = 0
+
+//12 - Arbitrary seed, for repeatability, from which random split occurs; change all for resampling.
+var seed1 = 42
+var seed2 = 24
+var seed3 = 14
+
+//No further inputs required; click 'run'.
+//After running, to complete each export task, click 'Tasks' then 'Run' next to the task, then 'Run' in the export window.
+
+
+
+/////////////////////////////////////////////////////
+//// Create and add additional features to image ////
+////////////////////////////////////////////////////
+
+//Subset image bands and visualize
+var image = image.select('B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12')
+
+//Center map and add baseMap
+var visParams = {
+  bands: ['B4','B3','B2'],  
+  min:0.05, max:0.25, 
+  gamma: [2]
+};
+Map.centerObject(image);
+print('Image:', image);
+Map.addLayer(image, visParams, 'Image', false);
+
+////Create index and texture layers////
+
+//Compute gray-level co-occurence matrix (GLCM)
+//Scale from float to 32-bit integer
+var scaled = image.unitScale(0,1).multiply(255).toInt32();
+var glcm = scaled.glcmTexture({size:3});
+print('GLCM:', glcm);
+//Display a GLCM measure
+if(glcmVis !== 0){
+  Map.addLayer(glcm, [glcmVis], glcmVis);
+}
+
+//Compute Normalized Difference Vegetation Index (NDVI)
+var nir = image.select('B8');
+var red = image.select('B4');
+var ndvi = nir.subtract(red).divide(nir.add(red)).rename('NDVI');
+//Display NDVI
+var ndviParams = {
+  min:-1, max: 1, 
+  palette: ['blue', 'white', 'green']
+};
+Map.addLayer(ndvi, ndviParams, 'NDVI');
+
+//Compute Simple Ratio Index (SRI)
+var sri = nir.divide(red).rename('SRI');
+//Display SRI
+var sriParams = {
+  min: 1, max: 9,
+  palette: ['blue', 'white', 'green']
+};
+Map.addLayer(sri, sriParams, 'SRI');
+
+//Compute Red Edge Normalized Difference Vegetation Index (ReNDVI)
+var vnir740 = image.select('B6');
+var vnir705 = image.select('B5');
+var rendvi = vnir740.subtract(vnir705).divide(vnir740.add(vnir705)).rename('ReNDVI');
+//Display ReNDVI
+Map.addLayer(rendvi, ndviParams, 'ReNDVI');
+
+//Compute Anthocyanin Reflectance Index 1 (ARI1)
+var grn = image.select('B3').multiply(100);
+var one = grn.divide(grn);
+var vnir = image.select('B5').multiply(100);
+var ari1 = one.divide(grn).subtract(one.divide(vnir)).rename('ARI1');
+
+//Display ARI1
+var ari1Params = {
+  min: 0.0, max: 0.2,
+  palette: ['blue', 'white', 'green']
+};
+Map.addLayer(ari1, ari1Params, 'ARI1');
+
+
+//Combine indices, texture, and bands
+var combinedAll = image.addBands(ndvi).addBands(sri).addBands(rendvi).addBands(ari1).addBands(glcm);
+print('All bands:', combinedAll);
+
+//Bands to use in final image; as determined from JM distance.
+var finalBands = (
+         'ReNDVI', 'ARI1',
+          'B3_asm', 
+          'B4_contrast', 'B8A_contrast',
+          'B4_diss', 'B8A_diss', 'B12_diss',
+          'B3_ent',
+          'B3_savg', 'B8A_savg', 'B7_savg', 'B2_savg', 'B4_savg', 'B11_savg',
+          'B12_var',  'B5_var', 'B4_var', 'B3_var', 'B8_var'
+          );
+
+//Select bands from JM feature selection
+var combined = ee.Image(combinedAll.select(finalBands));
+
+
+//Export combined to assets
+if(expImg_asset == 1){
+  Export.image.toAsset({
+    image: combined,
+    description: 'FinaltoAsset' + year,
+    assetId: 'final' + year,
+    region: boundaries,
+    scale: 10, //(m/px)
+  });
+}
+
+//Export combined to drive
+if(expImg_drive == 1){
+  Export.image.toDrive({
+    image: combined,
+    description: 'FinaltoDrive' + year,
+    fileNamePrefix: 'final' + year,
+    region: boundaries,
+    scale: 10, //(m/px)
+  });
+}
+
+//////////////////////////////////////
+//// Partition ground truth data ////
+/////////////////////////////////////
+
+if(data_part ==1){
+  
+  //Separate fusion table by class
+  var loguav1 = ee.FeatureCollection(fusion).filter(ee.Filter.equals('class', 1));
+  var mdguav1 = ee.FeatureCollection(fusion).filter(ee.Filter.equals('class', 2));
+  var higuav1 = ee.FeatureCollection(fusion).filter(ee.Filter.equals('class', 3));
+    
+  //Visualize ground truth data
+  Map.centerObject(combined);
+  Map.addLayer(loguav1, {color: '00FF00'}, 'loguav', true);
+  Map.addLayer(mdguav1, {color: 'fbff2b'}, 'mdguav', true);
+  Map.addLayer(higuav1, {color: 'FF0000'}, 'higuav', true);
+  
+  //Determine total area of each class in square meters
+  if(area_calc == 1){
+    var loArea = loguav1.geometry().area();
+    var mdArea = mdguav1.geometry().area();
+    var hiArea = higuav1.geometry().area();
+  
+    var area = ee.Dictionary([
+      'loArea', loArea, 
+      'mdArea', mdArea,
+      'hiArea', hiArea,
+    ]);
+    print('Area:', area);
+  }
+  
+  //Sample regions to discard data over masked regions, make each element a pixel, 
+  // and add lat and long property for exporting and visualization
+  var sample_func = function(coll){
+    var sample = combined.addBands(ee.Image.pixelLonLat())
+      .sampleRegions({
+      collection: coll,
+      properties: ['class'],
+      scale: 10
+      }).map(function(f) {return ee.Feature(ee.Geometry.Point([f.get('longitude'), f.get('latitude')]), f.toDictionary())} );
+     return sample
+  }
+  
+  var loguav = sample_func(loguav1)
+  var mdguav = sample_func(mdguav1)
+  var higuav = sample_func(higuav1)
+  
+  
+  //Create column of random numbers 0-1 with an arbitrary seed
+  var loguavfeat = ee.FeatureCollection(loguav).randomColumn('x', seed1);
+  var mdguavfeat = ee.FeatureCollection(mdguav).randomColumn('x', seed2);
+  var higuavfeat = ee.FeatureCollection(higuav).randomColumn('x', seed3);
+  
+  //Get 70% training data
+  var lotraining = loguavfeat.filter(ee.Filter.lt('x', 0.7));
+  var mdtraining = mdguavfeat.filter(ee.Filter.lt('x', 0.7));
+  var hitraining = higuavfeat.filter(ee.Filter.lt('x', 0.7));
+  
+  //Get 30% validation data
+  var lovalidation = loguavfeat.filter(ee.Filter.gte('x', 0.7));
+  var mdvalidation = mdguavfeat.filter(ee.Filter.gte('x', 0.7));
+  var hivalidation = higuavfeat.filter(ee.Filter.gte('x', 0.7));
+  
+  //Merge features into one feature collection each of training and validation
+  var training = lotraining.merge(mdtraining).merge(hitraining);
+  var validation = lovalidation.merge(mdvalidation).merge(hivalidation);
+  print('Training:', training);
+  print('Validation:', validation);
+  
+  //Visualize training and validation points
+  Map.addLayer(training, {color: 'FF0000'}, 'training samples', false);
+  Map.addLayer(validation, {color: 'FFFFFF'}, 'validation samples', false);
+  
+  //Export training and validation sets to assets
+  if(expGT_asset == 1){
+    Export.table.toAsset({
+      collection:training,
+      description: 'trainingToAsset',
+      assetId: 'training',
+    });
+    
+    Export.table.toAsset({
+      collection: validation,
+      description: 'validationToAsset',
+      assetId: 'validation'
+    });
+  }
+  
+  //Export training and validation sets to Google Drive as KML
+  if(expGT_drive == 1){
+    Export.table.toDrive({
+      collection: training,
+      description:'trainingExport',
+      fileNamePrefix: 'training',
+      fileFormat: 'KML',
+    });
+  
+    Export.table.toDrive({
+      collection: validation,
+      description: 'validationExport',
+      fileNamePrefix: 'validation',
+      fileFormat: 'KML'
+    });
+  }
+}
