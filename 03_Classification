@@ -1,0 +1,194 @@
+/////////////////////////////
+///// RF Classification /////
+////////////////////////////
+
+////User inputs////
+//Note: *Delete previous Imports before adding new imports.*
+
+//01 - Import training image from Assets (created in 02 - Add Features and Partition Data) as 'image' (without quotations).
+// Note: The training image is that which is concurrent with ground truth data.
+
+//02 - Import image to classify from Assets (created in 02 - Add Features and Partition Data) as 'image2' (without quotations).
+// Note: If this is the same as the training image, than import the same image again
+
+//03 - Import training and validation data from Assets (created in 02 - Add Features and Partition Data)
+//  and rename 'training' and 'validation' accordingly (without quotations).
+
+//04 - Year of image to classify.
+var year = 2017
+
+//05 - Import BRGNP boundaries from fusion table.
+// Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
+// and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
+var boundaries = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEHCll');
+
+///RF inputs///
+
+//06 - Perform RF classification? no = 0; yes = 1
+var rfclass = 1
+
+//07 - Export RF error matrix to Google Drive? no = 0; yes = 1
+var expRFmatrix = 0
+
+//08 - Export RF classified image to Google Drive? no = 0; yes = 1
+var expRFimg_drive = 0
+
+//09 - Export RF classified image to Assets? no = 0; yes = 1 (Yes if using for '05 - Land Cover Change')
+var expRFimg_asset = 0
+
+///SVM inputs///
+
+//10 - Perform SVM classification? no = 0; yes = 1
+var svmclass = 0
+
+//11 - Export SVM error matrix to Google Drive? no = 0; yes = 1
+var expSVMmatrix = 1
+
+//12 - Export SVM classified image to Google Drive? no = 0; yes = 1
+var expSVMimg_drive = 0
+
+//13 - Export SVM classified image to Assets? no = 0; yes = 1 (Yes if using for '05 - Land Cover Change')
+var expSVMimg_asset = 0
+
+//No further inputs required; click 'run'.
+//After running, to complete each export task, click 'Tasks' then 'Run' next to the task, then 'Run' in the export window.
+
+
+//////////////////////////////////////////////
+////Perform Random Forest classification ////
+/////////////////////////////////////////////
+
+if(rfclass == 1){
+  
+  //Train the classifier with arbitrary seed for repeatability
+  var rfclassifier = ee.Classifier.randomForest({
+    numberOfTrees:500,
+    seed: 42
+  })
+    .train({
+      features:training,
+      classProperty: 'class',
+      inputProperties: image.bandNames()
+    });
+  
+  //Apply RF classifier to classify image
+  var rfclassified = image2.classify(rfclassifier);
+  Map.centerObject(rfclassified);
+  Map.addLayer(rfclassified, {min:1, max: 3}, 'rf classified' + year);
+  
+  //Assess accuracy
+  //Confusion matrix using training data
+  var trainAccuracy = rfclassifier.confusionMatrix().accuracy();
+  print('RF Training accuracy:', trainAccuracy);
+  
+  //Error matrix using validation data
+  var RFtestAccuracy = validation
+    .classify(rfclassifier)
+    .errorMatrix('class', 'classification');
+  
+  //View overall accuracy and kappa
+  print('RF Test Overall Accuracy:', RFtestAccuracy.accuracy());
+  print('RF Test Kappa:', RFtestAccuracy.kappa());
+  
+  //Export error matrix to Drive
+  if(expRFmatrix == 1){
+    var RFexportAccuracy = ee.Feature(null, {matrix: RFtestAccuracy.array()});
+    Export.table.toDrive({
+      collection: ee.FeatureCollection(RFexportAccuracy),
+      description: 'RFtestAccuracy',
+      fileFormat: 'CSV'
+    });
+  }
+  
+  //Export classified image to drive
+  if(expRFimg_drive == 1){
+    Export.image.toDrive({
+      image: rfclassified,
+      description: 'rfclassified' + year + 'toDrive',
+      fileNamePrefix: 'rfclassified' + year,
+      region: boundaries,
+      scale: 10
+    });
+  }
+  
+  //Export classified image to asset
+  if(expRFimg_asset == 1){
+    Export.image.toAsset({
+      image: rfclassified,
+      description: 'rfclassified' + year + 'toAsset',
+      assetId: 'rfclassified' + year,
+      region: boundaries,
+      scale: 10
+    });
+  }
+}
+
+////////////////////////////////////
+//// Perform SVM Classification ////
+////////////////////////////////////
+
+if(svmclass == 1){
+
+  //Train the classifier
+  var svmclassifier = ee.Classifier.svm({
+    kernelType: 'RBF',
+    gamma: 0.02,
+    cost: 3
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+      features:training,
+      classProperty: 'class',
+      inputProperties: image.bandNames()
+    });
+  
+  //Apply the classifier to the image
+  var svmclassified = image2.classify(svmclassifier);
+  Map.addLayer(svmclassified, {min:1, max: 3}, 'svm classified');
+  
+  //Assess acuracy
+  //Confusion matrix using training data
+  var svmtrainAccuracy = svmclassifier.confusionMatrix().accuracy();
+  print('SVM Training accuracy:', svmtrainAccuracy);
+  
+  //Error matrix using validation data
+  var svmtestAccuracy = validation
+    .classify(svmclassifier)
+    .errorMatrix('class', 'classification');
+  
+  //View SVM overall accuracy and kappa
+  print('SVM Test Overall Accuracy:', svmtestAccuracy.accuracy());
+  print('SVM Test Kappa:', svmtestAccuracy.kappa());
+  
+  //Export error matrix to Drive
+  if(expSVMmatrix == 1){
+    var svmexportAccuracy = ee.Feature(null, {matrix: svmtestAccuracy.array()});
+    Export.table.toDrive({
+      collection: ee.FeatureCollection(svmexportAccuracy),
+      description: 'SVMtestAccuracy',
+      fileFormat: 'CSV'
+    });
+  }
+  
+  //Export image to drive
+  if(expSVMimg_drive == 1){
+    Export.image.toDrive({
+      image: svmclassified,
+      description: 'rfclassified' + year + 'toDrive',
+      fileNamePrefix: 'svmclassified' + year,
+      region: boundaries,
+      scale: 10
+    });
+  }
+  
+  //Export image to asset
+  if(expSVMimg_asset == 1){
+    Export.image.toAsset({
+      image: svmclassified,
+      description: 'rfclassified' + year + 'toAsset',
+      assetId: 'svmclassified' + year,
+      region: boundaries,
+      scale: 10
+    });
+  }
+}

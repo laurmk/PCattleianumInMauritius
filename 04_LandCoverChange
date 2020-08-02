@@ -1,0 +1,125 @@
+/////////////////////////////
+///// Land cover change ////
+////////////////////////////
+
+////User inputs////
+//Note: *Delete previous Imports before adding new imports.*
+
+//01 - Import BRGNP bounds from fusion table.
+// Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
+// and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
+var boundaries = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEHCll')
+
+//02 - Earlier year (year1) and later year (year2) of images.
+var year1 = 2016
+var year2 = 2018
+
+//RF change analysis inputs 
+
+//03 - Perform change analysis on RF images? no = 0; yes = 1
+var rfchange = 1
+
+//04 - Import pairs of RF classified images, from assets, for change analysis  
+// and rename to 'rf1' for earlier year and 'rf2' for later year (i.e. 'rf1' for 2016 and 'rf2' for 2017; without quotes).
+
+//05 - Export RF change image to Google Drive? no = 0; yes = 1
+var expRFchange = 1
+
+//SVM change analysis inputs 
+
+//06 - Perform change analysis on SVM images? no = 0; yes = 1
+var svmchange = 1
+
+//07 - Import pairs of SVM classified images, from assets, for change analysis  
+// and rename to 'svm1' for earlier year and 'svm2' for later year (i.e. 'svm1' for 2016 and 'svm2' for 2017; without quotes).
+
+//08 - Export SVM change image to Google Drive? no = 0; yes = 1
+var expSVMchange = 1
+
+//No further inputs required; click 'run'.
+//After running, to complete each export task, click 'Tasks' then 'Run' next to the task, then 'Run' in the export window.
+
+
+/////////////////////////////////
+////Perform Change Analysis ////
+////////////////////////////////
+
+//Create vis params
+var visParam = ({bands: ["classification"],
+                max: 2,
+                min: -2,
+                opacity: 1,
+                palette: ["02ab00", "62ff6e", "b9b9b9","ff6767", "f50000"]});
+
+
+//Make a function to get area of each class in an image (in m2)
+var areaResults = function(image){
+  return ee.Image.pixelArea().addBands(image)
+    .reduceRegion({
+      reducer: ee.Reducer.sum().group({
+        groupField: 1,
+        groupName: 'class',
+      }),
+      geometry: boundaries,
+      scale: 10,
+      bestEffort: true,
+});
+};
+
+////////////////////////////
+/// RF land cover change ///
+////////////////////////////
+
+if(rfchange == 1){
+
+  //Areas of RF year1 classes
+  var rf1Area = areaResults(rf1);
+  print('RF class areas ' + year1, rf1Area);
+
+  //Areas of SVM year2 classes
+  var rf2Area = areaResults(rf2);
+  print('RF class areas ' + year2, rf2Area);
+  
+  //Land cover change between year1 and year2 RF images
+  var rfchangeImg = rf2.subtract(rf1);
+  Map.addLayer(rfchangeImg, visParam, 'RFchange ' + year1 + ' to ' + year2);
+  
+  //Convert to interger type and export
+  if(expRFchange == 1){
+  Export.image.toDrive({
+    image: rfchangeImg.toDouble(),
+    description: 'rfchange' + year1 + year2,
+    region: boundaries,
+    scale: 10
+  });
+  }
+}
+
+/////////////////////////////
+/// SVM land cover change ///
+/////////////////////////////
+
+if(svmchange == 1){
+
+  //Areas of SVM year1 classes
+  var svm1Area = areaResults(svm1);
+  print('SVM class areas ' + year1, svm1Area);
+
+  //Areas of SVM year2 classes
+  var svm2Area = areaResults(svm2);
+  print('SVM class areas ' + year2, svm2Area);
+  
+  //Land cover change between year1 and year2 SVM images
+  var svmchangeImg = svm2.subtract(svm1);
+  Map.addLayer(svmchangeImg, visParam, 'SVM change ' + year1 + ' to ' + year2);
+  
+  //Convert to interger type and export
+  if(expSVMchange == 1){
+  Export.image.toDrive({
+    image: svmchangeImg.toDouble(),
+    description: 'svmchange' + year1 + year2,
+    region: boundaries,
+    scale: 10
+  });
+  }
+}
