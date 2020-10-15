@@ -5,18 +5,19 @@
 ////User inputs////
 
 //01 - Year of composite image.
-var year = 2018
+var year = 2020
 
 //02 - Start date of image collection in the form of 'YYYY-MM-DD' with quotes.
-var start = '2018-04-29'
+var start = '2020-03-30'
 
 //03 - End date of image collection in the form of 'YYYY-MM-DD' with quotes.
-var end = '2018-07-22'
+var end = '2020-06-18'
 
 //04 - Import BRGNP boundaries from fusion table.
 // Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
 // and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
-var bounds = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEHCll');
+//imported to assests instead 
+//var bounds = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEHCll');
 
 //05 - Max cloudy pixel percent of individual images; recommended '100'.
 var max = 100
@@ -34,7 +35,7 @@ var expImg = 1
 //////////////////////////////////////////////////
 
 //Following code, except 'Water masking', 
-// acquired from ( https://groups.google.com/d/msg/google-earth-engine-developers/i63DS-Dg8Sg/fUXHqHb7BgAJ ):
+// acquired from ( https://code.earthengine.google.com/38b73d7a23d972a6ac5c01c677988f89 ):
 
 // *******************************************************************************************
 //  * Purpose:  Satellite data mosaic
@@ -88,9 +89,9 @@ var export_tiles = 1;  // Export PBS classification in pieces if too big 2 = 4 t
 //1st step select country
 //////////////////////////////////////////////////////////////
 
-
-  var country = ee.FeatureCollection('ft:1tdSwUL7MVpOauSgRzqVTOwdfy17KDbw-1d9omPw')
-                  .filterMetadata('Country', 'Contains',countryname );
+// updated since fusion tables expired
+  var country = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017')
+                  .filterMetadata('country_na', 'Contains',countryname );
               
 var bbox=(country.geometry().bounds().coordinates().getInfo());
               
@@ -139,8 +140,8 @@ var shadow_filter_size = 500;  // add buffer in meters aroud shadows  --- too be
             //--------------------------------------------------------------------------------------
          
           if (use_centerpoint === 0){
-              var country = ee.FeatureCollection('ft:1tdSwUL7MVpOauSgRzqVTOwdfy17KDbw-1d9omPw')
-                  .filterMetadata('Country', 'Contains',countryname );
+              var country = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017")
+                  .filterMetadata('country_na', 'Contains',countryname );
                   
               //Map.addLayer(country); 
               var bbox=(country.geometry().bounds().coordinates().getInfo());
