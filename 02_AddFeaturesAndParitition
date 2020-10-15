@@ -12,7 +12,7 @@ var year = 2020
 
 //03 - Import ground truth data table from Assets with column of 'class' and values of 1, 2 or 3, name it 'table'.
 
-//04 - Import BRGNP boundaries as 'boundaries'.
+//04 - Import BRGNP boundaries from Assets as 'boundaries'.
 
 //05 - Visualize a GLCM measure? no = 0; yes: enter glcm band name to be visualized, in quotes, from GLCM band list (i.e. 'B2_asm')
 var glcmVis = 'B2_asm'
