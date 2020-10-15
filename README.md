@@ -1,4 +1,6 @@
 # PCattleianumInMauritius
+[![DOI](https://zenodo.org/badge/284477067.svg)](https://zenodo.org/badge/latestdoi/284477067)
+
 Random Forest (RF) and Support Vector Machine (SVM) classification of invasive alien species *Psidium cattleianum* (strawberry guava) canopy cover using 
 Sentinel-2 MSI composites of Black River Gorges National Park (BRGNP), Mauritius, and detection of class changes between years.
 
