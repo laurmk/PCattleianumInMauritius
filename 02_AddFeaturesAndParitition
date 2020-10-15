@@ -8,17 +8,11 @@
 //01 - Import composite image from Assets (created in 01 - Preprocess) as 'image' (without quotations).
 
 //02 - Image year.
-var year = 2017
+var year = 2020
 
-//03 - Import ground truth data fusion table with column of 'class' and values of 1, 2 or 3.
-// Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
-// and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
-var fusion = ee.FeatureCollection('ft:1AcOK_v4tcHVJ9erH7dd0WFEvxQ6N6gNxMQnTLuqr');
+//03 - Import ground truth data table from Assets with column of 'class' and values of 1, 2 or 3, name it 'table'.
 
-//04 - Import BRGNP boundaries from fusion table.
-// Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
-// and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
-var boundaries = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEHCll');
+//04 - Import BRGNP boundaries as 'boundaries'.
 
 //05 - Visualize a GLCM measure? no = 0; yes: enter glcm band name to be visualized, in quotes, from GLCM band list (i.e. 'B2_asm')
 var glcmVis = 'B2_asm'
@@ -34,16 +28,16 @@ var expImg_asset = 1
 var data_part = 0
 
 //09 - Export ground truth data to Google Drive as KML file? yes = 1; no = 0
-var expGT_drive = 1
+var expGT_drive = 0
 
 //10 - Export ground truth data to assets? yes = 1; no = 0
 //  Input '1' in order to classify in next steps
-var expGT_asset = 1
+var expGT_asset = 0
 
 //11 - Calculate total areas of validation and training data? yes = 1; no = 0
 var area_calc = 0
 
-//12 - Arbitrary seed, for repeatability, from which random split occurs; change all for resampling.
+//12 - Arbitrary seed, for repeatability, from which partition random split occurs; change all for resampling.
 var seed1 = 42
 var seed2 = 24
 var seed3 = 14
@@ -128,7 +122,7 @@ var combinedAll = image.addBands(ndvi).addBands(sri).addBands(rendvi).addBands(a
 print('All bands:', combinedAll);
 
 //Bands to use in final image; as determined from JM distance.
-var finalBands = (
+var finalBands = ee.List([
          'ReNDVI', 'ARI1',
           'B3_asm', 
           'B4_contrast', 'B8A_contrast',
@@ -136,11 +130,11 @@ var finalBands = (
           'B3_ent',
           'B3_savg', 'B8A_savg', 'B7_savg', 'B2_savg', 'B4_savg', 'B11_savg',
           'B12_var',  'B5_var', 'B4_var', 'B3_var', 'B8_var'
-          );
+          ]);
 
 //Select bands from JM feature selection
 var combined = ee.Image(combinedAll.select(finalBands));
-
+print('Final:', combined);
 
 //Export combined to assets
 if(expImg_asset == 1){
@@ -171,9 +165,9 @@ if(expImg_drive == 1){
 if(data_part ==1){
   
   //Separate fusion table by class
-  var loguav1 = ee.FeatureCollection(fusion).filter(ee.Filter.equals('class', 1));
-  var mdguav1 = ee.FeatureCollection(fusion).filter(ee.Filter.equals('class', 2));
-  var higuav1 = ee.FeatureCollection(fusion).filter(ee.Filter.equals('class', 3));
+  var loguav1 = ee.FeatureCollection(table).filter(ee.Filter.equals('class', 1));
+  var mdguav1 = ee.FeatureCollection(table).filter(ee.Filter.equals('class', 2));
+  var higuav1 = ee.FeatureCollection(table).filter(ee.Filter.equals('class', 3));
     
   //Visualize ground truth data
   Map.centerObject(combined);
@@ -242,13 +236,13 @@ if(data_part ==1){
     Export.table.toAsset({
       collection:training,
       description: 'trainingToAsset',
-      assetId: 'training',
+      assetId: 'trainingv2',
     });
     
     Export.table.toAsset({
       collection: validation,
       description: 'validationToAsset',
-      assetId: 'validation'
+      assetId: 'validationv2'
     });
   }
   
