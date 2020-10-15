@@ -13,11 +13,7 @@ var start = '2020-03-30'
 //03 - End date of image collection in the form of 'YYYY-MM-DD' with quotes.
 var end = '2020-06-18'
 
-//04 - Import BRGNP boundaries from fusion table.
-// Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
-// and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
-//imported to assests instead 
-//var bounds = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEHCll');
+//04 - Import BRGNP boundaries from Assets and name it 'bounds'.
 
 //05 - Max cloudy pixel percent of individual images; recommended '100'.
 var max = 100
