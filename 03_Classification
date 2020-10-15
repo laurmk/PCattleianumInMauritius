@@ -1,6 +1,6 @@
-/////////////////////////////
-///// RF Classification /////
-////////////////////////////
+///////////////////////////////////
+///// RF & SVM Classification /////
+///////////////////////////////////
 
 ////User inputs////
 //Note: *Delete previous Imports before adding new imports.*
@@ -15,12 +15,9 @@
 //  and rename 'training' and 'validation' accordingly (without quotations).
 
 //04 - Year of image to classify.
-var year = 2017
+var year = 2020
 
-//05 - Import BRGNP boundaries from fusion table.
-// Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
-// and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
-var boundaries = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEHCll');
+//05 - Import BRGNP boundaries from assests as 'boundaries'.
 
 ///RF inputs///
 
@@ -28,27 +25,27 @@ var boundaries = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEH
 var rfclass = 1
 
 //07 - Export RF error matrix to Google Drive? no = 0; yes = 1
-var expRFmatrix = 0
+var expRFmatrix = 1
 
 //08 - Export RF classified image to Google Drive? no = 0; yes = 1
-var expRFimg_drive = 0
+var expRFimg_drive = 1
 
 //09 - Export RF classified image to Assets? no = 0; yes = 1 (Yes if using for '05 - Land Cover Change')
-var expRFimg_asset = 0
+var expRFimg_asset = 1
 
 ///SVM inputs///
 
 //10 - Perform SVM classification? no = 0; yes = 1
-var svmclass = 0
+var svmclass = 1
 
 //11 - Export SVM error matrix to Google Drive? no = 0; yes = 1
 var expSVMmatrix = 1
 
 //12 - Export SVM classified image to Google Drive? no = 0; yes = 1
-var expSVMimg_drive = 0
+var expSVMimg_drive = 1
 
 //13 - Export SVM classified image to Assets? no = 0; yes = 1 (Yes if using for '05 - Land Cover Change')
-var expSVMimg_asset = 0
+var expSVMimg_asset = 1
 
 //No further inputs required; click 'run'.
 //After running, to complete each export task, click 'Tasks' then 'Run' next to the task, then 'Run' in the export window.
@@ -95,7 +92,7 @@ if(rfclass == 1){
     var RFexportAccuracy = ee.Feature(null, {matrix: RFtestAccuracy.array()});
     Export.table.toDrive({
       collection: ee.FeatureCollection(RFexportAccuracy),
-      description: 'RFtestAccuracy',
+      description: 'RFtestAccuracy' + year,
       fileFormat: 'CSV'
     });
   }
@@ -165,7 +162,7 @@ if(svmclass == 1){
     var svmexportAccuracy = ee.Feature(null, {matrix: svmtestAccuracy.array()});
     Export.table.toDrive({
       collection: ee.FeatureCollection(svmexportAccuracy),
-      description: 'SVMtestAccuracy',
+      description: 'SVMtestAccuracy' + year,
       fileFormat: 'CSV'
     });
   }
@@ -174,7 +171,7 @@ if(svmclass == 1){
   if(expSVMimg_drive == 1){
     Export.image.toDrive({
       image: svmclassified,
-      description: 'rfclassified' + year + 'toDrive',
+      description: 'svmclassified' + year + 'toDrive',
       fileNamePrefix: 'svmclassified' + year,
       region: boundaries,
       scale: 10
@@ -185,7 +182,7 @@ if(svmclass == 1){
   if(expSVMimg_asset == 1){
     Export.image.toAsset({
       image: svmclassified,
-      description: 'rfclassified' + year + 'toAsset',
+      description: 'svmclassified' + year + 'toAsset',
       assetId: 'svmclassified' + year,
       region: boundaries,
       scale: 10
