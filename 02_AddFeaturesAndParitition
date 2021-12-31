@@ -8,7 +8,7 @@
 //01 - Import composite image from Assets (created in 01 - Preprocess) as 'image' (without quotations).
 
 //02 - Image year.
-var year = 2020
+var year = 2018
 
 //03 - Import ground truth data table from Assets with column of 'class' and values of 1, 2 or 3, name it 'table'.
 
@@ -18,23 +18,23 @@ var year = 2020
 var glcmVis = 'B2_asm'
 
 //06 - Export final image to Google Drive? yes = 1; no = 0
-var expImg_drive = 1
+var expImg_drive = 0
 
 //07 - Export final image to assets? yes = 1; no = 0
 //  Input '1' in order to classify in next steps
-var expImg_asset = 1
+var expImg_asset = 0
 
 //08 - Conduct data partitioning? yes = 1; no = 0 (only complete if ground truth data concurrent with image)
-var data_part = 0
+var data_part = 1
 
 //09 - Export ground truth data to Google Drive as KML file? yes = 1; no = 0
-var expGT_drive = 0
+var expGT_drive = 1
 
 //10 - Export ground truth data to assets? yes = 1; no = 0
 //  Input '1' in order to classify in next steps
 var expGT_asset = 0
 
-//11 - Calculate total areas of validation and training data? yes = 1; no = 0
+//11 - Calculate total areas of training and testing data? yes = 1; no = 0
 var area_calc = 0
 
 //12 - Arbitrary seed, for repeatability, from which partition random split occurs; change all for resampling.
@@ -164,7 +164,7 @@ if(expImg_drive == 1){
 
 if(data_part ==1){
   
-  //Separate fusion table by class
+  //Separate ground truth data table by class
   var loguav1 = ee.FeatureCollection(table).filter(ee.Filter.equals('class', 1));
   var mdguav1 = ee.FeatureCollection(table).filter(ee.Filter.equals('class', 2));
   var higuav1 = ee.FeatureCollection(table).filter(ee.Filter.equals('class', 3));
@@ -212,41 +212,41 @@ if(data_part ==1){
   var higuavfeat = ee.FeatureCollection(higuav).randomColumn('x', seed3);
   
   //Get 70% training data
-  var lotraining = loguavfeat.filter(ee.Filter.lt('x', 0.7));
-  var mdtraining = mdguavfeat.filter(ee.Filter.lt('x', 0.7));
-  var hitraining = higuavfeat.filter(ee.Filter.lt('x', 0.7));
+  var lotraining = loguavfeat.filter(ee.Filter.lt('x', 0.700));
+  var mdtraining = mdguavfeat.filter(ee.Filter.lt('x', 0.700));
+  var hitraining = higuavfeat.filter(ee.Filter.lt('x', 0.700));
   
-  //Get 30% validation data
-  var lovalidation = loguavfeat.filter(ee.Filter.gte('x', 0.7));
-  var mdvalidation = mdguavfeat.filter(ee.Filter.gte('x', 0.7));
-  var hivalidation = higuavfeat.filter(ee.Filter.gte('x', 0.7));
+  //Get 30% testing data
+  var lotesting = loguavfeat.filter(ee.Filter.gte('x', 0.700));
+  var mdtesting = mdguavfeat.filter(ee.Filter.gte('x', 0.700));
+  var hitesting = higuavfeat.filter(ee.Filter.gte('x', 0.700));
   
-  //Merge features into one feature collection each of training and validation
+  //Merge features into one feature collection each of training and testing
   var training = lotraining.merge(mdtraining).merge(hitraining);
-  var validation = lovalidation.merge(mdvalidation).merge(hivalidation);
+  var testing = lotesting.merge(mdtesting).merge(hitesting);
   print('Training:', training);
-  print('Validation:', validation);
+  print('Testing:', testing);
   
-  //Visualize training and validation points
+  //Visualize training and testing points
   Map.addLayer(training, {color: 'FF0000'}, 'training samples', false);
-  Map.addLayer(validation, {color: 'FFFFFF'}, 'validation samples', false);
+  Map.addLayer(testing, {color: 'FFFFFF'}, 'testing samples', false);
   
-  //Export training and validation sets to assets
+  //Export training and testing sets to assets
   if(expGT_asset == 1){
     Export.table.toAsset({
       collection:training,
       description: 'trainingToAsset',
-      assetId: 'trainingv2',
+      assetId: 'training',
     });
     
     Export.table.toAsset({
       collection: validation,
-      description: 'validationToAsset',
-      assetId: 'validationv2'
+      description: 'testingToAsset',
+      assetId: 'testing'
     });
   }
   
-  //Export training and validation sets to Google Drive as KML
+  //Export training and testing sets to Google Drive as KML
   if(expGT_drive == 1){
     Export.table.toDrive({
       collection: training,
@@ -256,9 +256,9 @@ if(data_part ==1){
     });
   
     Export.table.toDrive({
-      collection: validation,
-      description: 'validationExport',
-      fileNamePrefix: 'validation',
+      collection: testing,
+      description: 'testingExport',
+      fileNamePrefix: 'testing',
       fileFormat: 'KML'
     });
   }
