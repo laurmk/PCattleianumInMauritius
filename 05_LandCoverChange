@@ -5,10 +5,7 @@
 ////User inputs////
 //Note: *Delete previous Imports before adding new imports.*
 
-//01 - Import BRGNP bounds from fusion table.
-// Note: After creating table on https://fusiontables.google.com , click 'File' then 'About this table', then copy ID field
-// and past below in the form of: ee.FeatureCollection('ft:PASTE ID HERE').
-var boundaries = ee.FeatureCollection('ft:1HMbXd2NR6hjhtH6VnFR2rs-AH_kqqfMaw9GEHCll')
+//01 - Import BRGNP boundaries from assests as 'boundaries'.
 
 //02 - Earlier year (year1) and later year (year2) of images.
 var year1 = 2016
