@@ -565,4 +565,3 @@ function PINO1(image,BANDS){
 
 
 print('Composite Image:', compositeJRC)
-
