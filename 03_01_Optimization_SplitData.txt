@@ -1,0 +1,141 @@
+//////////////////////////////////////////////////////
+///// Optimization - Split data (create 5-folds) /////
+//////////////////////////////////////////////////////
+
+////User inputs////
+//Note: *Delete previous Imports before adding new imports.*
+
+//01 - Import traning data as 'training'
+
+//No further inputs required; click 'run'.
+//After running, to complete each export task, click 'Tasks' then 'Run' next to the task, then 'Run' in the export window.
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+/// Split training data into 5-folds (of 80% training and 20% validation) ///
+/////////////////////////////////////////////////////////////////////////////
+
+// Set seed for repeatability
+var seed1 = 42;
+var seed2 = 36;
+var seed3 = 108;
+
+// Split classes for stratified sampling
+var loguav = training.filter(ee.Filter.eq('class', 1));
+var mdguav = training.filter(ee.Filter.eq('class', 2));
+var higuav = training.filter(ee.Filter.eq('class', 3));
+  
+//Create column of random numbers 0-1 with an arbitrary seed
+var loguavfeat = loguav.randomColumn('x', seed1);
+var mdguavfeat = mdguav.randomColumn('x', seed2);
+var higuavfeat = higuav.randomColumn('x', seed3);
+
+// Create function to make splits for 20% validation
+var validationsets = function(a, b){
+  
+  //Get 20% validation data
+  var lovalidation = loguavfeat.filter(ee.Filter.and(ee.Filter.gte('x', a), ee.Filter.lt('x', b)));
+  var mdvalidation = mdguavfeat.filter(ee.Filter.and(ee.Filter.gte('x', a), ee.Filter.lt('x', b)));
+  var hivalidation = higuavfeat.filter(ee.Filter.and(ee.Filter.gte('x', a), ee.Filter.lt('x', b)));
+
+  //Merge features into one feature collection each of training and validation
+  var validation1 = lovalidation.merge(mdvalidation).merge(hivalidation);
+  return validation1;
+};
+
+// Create function to make splits for 80% trainging
+var trainingsets = function(a, b){
+  
+  //Get 80% training data
+  var lotraining = loguavfeat.filter(ee.Filter.or(ee.Filter.lt('x', a), ee.Filter.gte('x', b)));
+  var mdtraining = mdguavfeat.filter(ee.Filter.or(ee.Filter.lt('x', a), ee.Filter.gte('x', b)));
+  var hitraining = higuavfeat.filter(ee.Filter.or(ee.Filter.lt('x', a), ee.Filter.gte('x', b)));
+
+  //Merge features into one feature collection each of training and validation
+  var trainingnew1 = lotraining.merge(mdtraining).merge(hitraining);
+  return trainingnew1;
+};
+
+// Apply 
+var validFold1 = validationsets(0.0, 0.2);
+var validFold2 = validationsets(0.2, 0.4);
+var validFold3 = validationsets(0.4, 0.6);
+var validFold4 = validationsets(0.6, 0.8);
+var validFold5 = validationsets(0.8, 1.0);
+
+var trainingFold1 = trainingsets(0.0, 0.2);
+var trainingFold2 = trainingsets(0.2, 0.4);
+var trainingFold3 = trainingsets(0.4, 0.6);
+var trainingFold4 = trainingsets(0.6, 0.8);
+var trainingFold5 = trainingsets(0.8, 1.0);
+ 
+ // View details of a fold
+ print('loguav:', loguav);
+ print('Training:', trainingFold5);
+ print('Validation:', validFold5);
+
+
+ Export.table.toAsset({
+   collection:trainingFold1,
+   description: 'trainingFold1ToAsset',
+   assetId: 'trainingFold1',
+ });
+   
+ Export.table.toAsset({
+   collection: validFold1,
+   description: 'validFold1ToAsset',
+   assetId: 'validFold1'
+ });
+
+ Export.table.toAsset({
+   collection:trainingFold2,
+   description: 'trainingFold2ToAsset',
+   assetId: 'trainingFold2',
+ });
+   
+ Export.table.toAsset({
+   collection: validFold2,
+   description: 'validFold2ToAsset',
+   assetId: 'validFold2'
+ });
+
+
+ Export.table.toAsset({
+   collection:trainingFold3,
+   description: 'trainingFold3ToAsset',
+   assetId: 'trainingFold3',
+ });
+   
+ Export.table.toAsset({
+   collection: validFold3,
+   description: 'validFold3ToAsset',
+   assetId: 'validFold3'
+ });
+
+
+ Export.table.toAsset({
+   collection:trainingFold4,
+   description: 'trainingFold4ToAsset',
+   assetId: 'trainingFold4',
+ });
+   
+ Export.table.toAsset({
+   collection: validFold4,
+   description: 'validFold4ToAsset',
+   assetId: 'validFold4'
+ });
+
+
+ Export.table.toAsset({
+   collection:trainingFold5,
+   description: 'trainingFold5ToAsset',
+   assetId: 'trainingFold5',
+ });
+   
+ Export.table.toAsset({
+   collection: validFold5,
+   description: 'validFold5ToAsset',
+   assetId: 'validFold5'
+ });
+

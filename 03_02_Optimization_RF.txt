@@ -1,0 +1,173 @@
+////////////////////////////////////////////////////////////
+///// Optimization - Parameter tuning of RF classifier /////
+///////////////////////////////////////////////////////////
+
+////User inputs////
+//Note: *Delete previous Imports before adding new imports.*
+
+//01 - Import trainingFold and corresponding validFold as traningFold and validFold, 1 at a time
+//    e.g. import trainingFold1 as 'trainingFold' and corresponding validFold1 as 'validFold'
+
+//02 - Import training image from Assets (created in 02 - Add Features and Partition Data) as 'image' (without quotations).
+// Note: The training image is that which is concurrent with ground truth data.
+
+//No further inputs required; click 'run'.
+//After running, to complete each export task, click 'Tasks' then 'Run' next to the task, then 'Run' in the export window.
+
+
+
+///////////////////////////////////////////////////////////
+///Number of trees parameter tuning using arbitrary seed///
+//////////////////////////////////////////////////////////
+
+//(split into 100-500 trees and then again with 550-1000 trees due to computing time)
+
+// Num trees 100-500 validation accuracy 
+var numTrees1 = ee.List.sequence(100, 500, 50);
+
+var accuracies1 = numTrees1.map(function(n) {
+  var classifier1 = ee.Classifier.smileRandomForest({
+    numberOfTrees: n,
+    seed: 42
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return validFold
+    .classify(classifier1)
+    .errorMatrix('class', 'classification')
+    .accuracy();
+});
+print('num trees 1_valid accuracy:', accuracies1)
+
+//Num trees 100-500 training accuracy
+
+var accuracies1t = numTrees1.map(function(n) {
+  var classifier1t = ee.Classifier.smileRandomForest({
+    numberOfTrees: n,
+    seed: 42
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return classifier1t
+  .confusionMatrix()
+  .accuracy();
+});
+print('num trees 1_training accuracy:', accuracies1t);
+
+//Number of tree 550-1000 validation accuracy
+
+var numTrees2 = ee.List.sequence(550, 1000, 50);
+
+var accuracies1b = numTrees2.map(function(n) {
+  var classifier1b = ee.Classifier.smileRandomForest({
+    numberOfTrees: n,
+    seed: 42
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return validFold
+    .classify(classifier1b)
+    .errorMatrix('class', 'classification')
+    .accuracy();
+});
+
+print('num trees 2_valid accuracy:',accuracies1b)
+
+//Num trees 550-1000 training accuracy
+
+var accuracies1tb = numTrees2.map(function(n) {
+  var classifier1tb = ee.Classifier.smileRandomForest({
+    numberOfTrees: n,
+    seed: 42
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return classifier1tb
+  .confusionMatrix()
+  .accuracy();
+});
+print('num trees 2_training accuracy:', accuracies1tb);
+
+//Show a graph
+/*
+print(ui.Chart.array.values({
+  array: accuracies1,
+  axis: 0,
+  xLabels: numTrees
+}));
+*/
+
+
+/////////////////////////////////////////////
+/// Number of variables parameter testing ///
+/////////////////////////////////////////////
+
+var numVar = ee.List.sequence(2, 8, 1);
+
+var accuracies2 = numVar.map(function(m) {
+  var classifier2 = ee.Classifier.smileRandomForest({
+    numberOfTrees: 500,
+    variablesPerSplit: m,
+    seed: 42
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return validFold
+    .classify(classifier2)
+    .errorMatrix('class', 'classification')
+    .accuracy();
+});
+
+// Print results
+print('num variables validation accuracy:', accuracies2);
+
+// num var training accuracy
+var accuracies2t = numVar.map(function(m) {
+  var classifier2t = ee.Classifier.smileRandomForest({
+    numberOfTrees: 500,
+    variablesPerSplit: m,
+    seed: 42
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return classifier2t
+  .confusionMatrix()
+  .accuracy();
+});
+
+// Print results
+print('num variables training accuracy:', accuracies2t)
+
+//Show a graph
+/*
+print(ui.Chart.array.values({
+  array: ee.Array(accuracies2),
+  axis: 0,
+  xLabels: numVar
+}));
+
+*/

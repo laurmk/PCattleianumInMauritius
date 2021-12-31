@@ -1,0 +1,134 @@
+/////////////////////////////////////////////////////////////
+///// Optimization - Parameter tuning of SVM classifier /////
+////////////////////////////////////////////////////////////
+
+////User inputs////
+//Note: *Delete previous Imports before adding new imports.*
+
+//01 - Import trainingFold and corresponding validFold as traningFold and validFold, 1 at a time
+//    e.g. import trainingFold1 as 'trainingFold' and corresponding validFold1 as 'validFold'
+
+//02 - Import training image from Assets (created in 02 - Add Features and Partition Data) as 'image' (without quotations).
+// Note: The training image is that which is concurrent with ground truth data.
+
+//No further inputs required; click 'run'.
+//After running, to complete each export task, click 'Tasks' then 'Run' next to the task, then 'Run' in the export window.
+
+
+
+////////////////////////
+/// RBF gamma tuning ///
+////////////////////////
+
+//RBF gamma parameter tuning with validation data
+var gam = ee.List.sequence(0.005, 1, 0.005);
+
+var accuracies1 = gam.map(function(y) {
+  var classifier = ee.Classifier.libsvm({
+    kernelType: 'RBF',
+    gamma: y,
+    cost: 3
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return validFold
+    .classify(classifier)
+    .errorMatrix('class', 'classification')
+    .accuracy();
+});
+
+print(ui.Chart.array.values({
+  array: ee.Array(accuracies1),
+  axis: 0,
+  xLabels: gam
+}));
+
+
+//RBF gamma parameter tuning with training data
+var gam = ee.List.sequence(0.005, 1, 0.005);
+
+var accuracies2 = gam.map(function(y) {
+  var classifier = ee.Classifier.libsvm({
+    kernelType: 'RBF',
+    gamma: y,
+    cost: 3
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return classifier
+  .confusionMatrix()
+  .accuracy();
+});
+
+print(ui.Chart.array.values({
+  array: ee.Array(accuracies2),
+  axis: 0,
+  xLabels: gam
+}));
+
+
+///////////////////
+/// Cost tuning ///
+//////////////////
+
+//Cost parameter tuning with validation data
+var cparam = ee.List.sequence(1, 10, 0.5);
+
+var accuracies = cparam.map(function(c) {
+  var classifier = ee.Classifier.libsvm({
+    kernelType: 'RBF',
+    gamma: 0.02,
+    cost: c
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return validFold
+    .classify(classifier)
+    .errorMatrix('class', 'classification')
+    .accuracy();
+});
+
+print(ui.Chart.array.values({
+  array: ee.Array(accuracies),
+  axis: 0,
+  xLabels: cparam
+}));
+
+
+//Cost parameter tuning with training data
+var cparam = ee.List.sequence(1, 10, 0.5);
+
+var accuracies = cparam.map(function(c) {
+  var classifier = ee.Classifier.libsvm({
+    kernelType: 'RBF',
+    gamma: 0.02,
+    cost: c
+  })
+    .setOutputMode('CLASSIFICATION')
+    .train({
+     features: trainingFold,
+     classProperty: 'class',
+     inputProperties: image.bandNames()
+    });
+  return classifier
+  .confusionMatrix()
+  .accuracy();
+});
+
+print(ui.Chart.array.values({
+  array: ee.Array(accuracies),
+  axis: 0,
+  xLabels: cparam
+}));
