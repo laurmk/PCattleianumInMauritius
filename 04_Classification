@@ -11,27 +11,27 @@
 //02 - Import image to classify from Assets (created in 02 - Add Features and Partition Data) as 'image2' (without quotations).
 // Note: If this is the same as the training image, than import the same image again
 
-//03 - Import training and validation data from Assets (created in 02 - Add Features and Partition Data)
-//  and rename 'training' and 'validation' accordingly (without quotations).
+//03 - Import training and testing data from Assets (created in 02 - Add Features and Partition Data)
+//  and rename 'training' and 'testing' accordingly (without quotations).
 
 //04 - Year of image to classify.
-var year = 2020
+var year = 2018
 
 //05 - Import BRGNP boundaries from assests as 'boundaries'.
 
 ///RF inputs///
 
 //06 - Perform RF classification? no = 0; yes = 1
-var rfclass = 1
+var rfclass = 0
 
 //07 - Export RF error matrix to Google Drive? no = 0; yes = 1
-var expRFmatrix = 1
+var expRFmatrix = 0
 
 //08 - Export RF classified image to Google Drive? no = 0; yes = 1
-var expRFimg_drive = 1
+var expRFimg_drive = 0
 
 //09 - Export RF classified image to Assets? no = 0; yes = 1 (Yes if using for '05 - Land Cover Change')
-var expRFimg_asset = 1
+var expRFimg_asset = 0
 
 ///SVM inputs///
 
@@ -42,10 +42,10 @@ var svmclass = 1
 var expSVMmatrix = 1
 
 //12 - Export SVM classified image to Google Drive? no = 0; yes = 1
-var expSVMimg_drive = 1
+var expSVMimg_drive = 0
 
 //13 - Export SVM classified image to Assets? no = 0; yes = 1 (Yes if using for '05 - Land Cover Change')
-var expSVMimg_asset = 1
+var expSVMimg_asset = 0
 
 //No further inputs required; click 'run'.
 //After running, to complete each export task, click 'Tasks' then 'Run' next to the task, then 'Run' in the export window.
@@ -58,7 +58,7 @@ var expSVMimg_asset = 1
 if(rfclass == 1){
   
   //Train the classifier with arbitrary seed for repeatability
-  var rfclassifier = ee.Classifier.randomForest({
+  var rfclassifier = ee.Classifier.smileRandomForest({
     numberOfTrees:500,
     seed: 42
   })
@@ -78,8 +78,8 @@ if(rfclass == 1){
   var trainAccuracy = rfclassifier.confusionMatrix().accuracy();
   print('RF Training accuracy:', trainAccuracy);
   
-  //Error matrix using validation data
-  var RFtestAccuracy = validation
+  //Error matrix using testing data
+  var RFtestAccuracy = testing
     .classify(rfclassifier)
     .errorMatrix('class', 'classification');
   
@@ -127,7 +127,7 @@ if(rfclass == 1){
 if(svmclass == 1){
 
   //Train the classifier
-  var svmclassifier = ee.Classifier.svm({
+  var svmclassifier = ee.Classifier.libsvm({
     kernelType: 'RBF',
     gamma: 0.02,
     cost: 3
@@ -148,8 +148,8 @@ if(svmclass == 1){
   var svmtrainAccuracy = svmclassifier.confusionMatrix().accuracy();
   print('SVM Training accuracy:', svmtrainAccuracy);
   
-  //Error matrix using validation data
-  var svmtestAccuracy = validation
+  //Error matrix using testing data
+  var svmtestAccuracy = testing
     .classify(svmclassifier)
     .errorMatrix('class', 'classification');
   
