@@ -36,10 +36,19 @@ Add GLCM (gray-level co-occurance matrix) texture features and vegetation indice
 Also partition ground truth data into 70% training data and 30% validation data.
 Export composite and data to Assets use in next step.
 
-### 03_Classification
+### 03_01_Optimization_SplitData
+Split data into five sets of 80% training and 20% validation for 5-fold cross validation in parameter optimization.
+
+### 03_02_Optimization_RF
+Use the five sets of 80% training and 20% validation, one at a time, to complete 5-fold cross validation for parameter tuning of the Random Forest classifier.
+
+### 03_02_Optimization_SVM
+Use the five sets of 80% training and 20% validation, one at a time, to complete 5-fold cross validation for parameter tuning of the Support Vector Machine classifier.
+
+### 04_Classification
 Perform SVM and RF classification of the composite and produce classified rasters and error matrices. Export classified rasters and error matrices.
 
-### 04_LandCoverChange
+### 05_LandCoverChange
 Evaluate numerical class changes between different years of classified images. Export raster of class changes.
 
 ## References
